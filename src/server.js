@@ -30,7 +30,7 @@ app.get('/api/health', (req, res) => {
 app.post('/api/seed/reset', async (req, res) => {
   try {
     await seedData(true);
-    res.json({ success: true, message: 'Database successfully reseeded with Owner -> L1 -> L5 hierarchy' });
+    res.json({ success: true, message: 'Database successfully initialized with Platform Owner (Root Level 0)' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -62,7 +62,7 @@ const PORT = process.env.PORT || 5000;
 connectDB().then(async () => {
   await seedData(true);
   app.listen(PORT, () => {
-    console.log(`🚀 Sports Partnership Platform running at: http://localhost:${PORT}`);
+    console.log(`Sports Partnership Platform running at: http://localhost:${PORT}`);
   });
 }).catch(err => {
   console.error('Failed to start server:', err);
