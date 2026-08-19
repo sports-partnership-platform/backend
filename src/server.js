@@ -1,0 +1,59 @@
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
+const dotenv = require('dotenv');
+const connectDB = require('./config/db');
+const seedData = require('./utils/seedData');
+
+dotenv.config();
+
+const app = express();
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// API Routes
+app.use('/api/partners', require('./routes/partnerRoutes'));
+app.use('/api/partnerships', require('./routes/partnershipRoutes'));
+app.use('/api/transactions', require('./routes/transactionRoutes'));
+app.use('/api/sports', require('./routes/sportRoutes'));
+app.use('/api/reports', require('./routes/reportRoutes'));
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK', message: 'Sports Partnership API running smoothly' });
+});
+
+// Serve Angular static production build
+const frontendBrowserPath = path.join(__dirname, '../../frontend/dist/sports-partnership-frontend/browser');
+const frontendRootPath = path.join(__dirname, '../../frontend/dist/sports-partnership-frontend');
+
+app.use(express.static(frontendBrowserPath));
+app.use(express.static(frontendRootPath));
+
+// Fallback to index.html for Angular SPA client-side routing
+app.get('*', (req, res) => {
+  if (!req.path.startsWith('/api')) {
+    const browserIndex = path.join(frontendBrowserPath, 'index.html');
+    if (fs.existsSync(browserIndex)) {
+      res.sendFile(browserIndex);
+    } else {
+      res.sendFile(path.join(frontendRootPath, 'index.html'));
+    }
+  } else {
+    res.status(404).json({ success: false, message: 'API Endpoint not found' });
+  }
+});
+
+const PORT = process.env.PORT || 5000;
+
+connectDB().then(async () => {
+  await seedData();
+  app.listen(PORT, () => {
+    console.log(`🚀 Sports Partnership Platform running at: http://localhost:${PORT}`);
+  });
+}).catch(err => {
+  console.error('Failed to start server:', err);
+});
