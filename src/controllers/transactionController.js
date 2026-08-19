@@ -10,7 +10,7 @@ const computePayoutBreakdown = async (partnerId, sportCode, amount) => {
   });
 
   if (!partner) {
-    throw new Error('Generating partner not found');
+    throw new Error('Originating partner not found');
   }
 
   const sportDoc = await Sport.findOne({ code: sportCode });

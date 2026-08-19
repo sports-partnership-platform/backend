@@ -16,6 +16,7 @@ logs
 *.log
 
 # Runtime data / Database
+data/
 pids
 *.pid
 *.seed
