@@ -15,6 +15,7 @@ app.use(cors());
 app.use(express.json());
 
 // API Routes
+app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/partners', require('./routes/partnerRoutes'));
 app.use('/api/partnerships', require('./routes/partnershipRoutes'));
 app.use('/api/transactions', require('./routes/transactionRoutes'));
@@ -29,8 +30,17 @@ app.get('/api/health', (req, res) => {
 // Admin reseed endpoint
 app.post('/api/seed/reset', async (req, res) => {
   try {
-    await seedData(true);
-    res.json({ success: true, message: 'Database successfully initialized with Platform Owner (Root Level 0)' });
+    await seedData(true, true);
+    res.json({ success: true, message: 'Database successfully reseeded with full 6-tier hierarchy and sample transactions' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.post('/api/seed/demo', async (req, res) => {
+  try {
+    await seedData(true, true);
+    res.json({ success: true, message: 'Full demo dataset provisioned successfully' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -60,7 +70,7 @@ app.get('*', (req, res) => {
 const PORT = process.env.PORT || 5000;
 
 connectDB().then(async () => {
-  await seedData(true);
+  await seedData(false);
   app.listen(PORT, () => {
     console.log(`Sports Partnership Platform running at: http://localhost:${PORT}`);
   });

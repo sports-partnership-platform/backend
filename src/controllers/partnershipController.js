@@ -45,6 +45,16 @@ exports.updatePartnership = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Partner not found' });
     }
 
+    // Permission check: Non-owner can only update their own allocation to downlines
+    if (req.user && req.user.level > 0) {
+      if (partner._id.toString() !== req.user.partnerRef._id.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: 'Permission denied: You can only configure commission allocations for your own node.'
+        });
+      }
+    }
+
     const currentSportConfig = partner.sportsPartnership.get(sportCode) || { received: partner.level === 0 ? 100 : 0, given: 0, remaining: 0 };
     const received = partner.level === 0 ? 100 : currentSportConfig.received;
 
@@ -78,10 +88,15 @@ exports.updatePartnership = async (req, res) => {
   }
 };
 
-// Get sports partnership matrix for all partners (Owner down to Level 5)
+// Get sports partnership matrix for partners (scoped to allowed subtree)
 exports.getPartnershipMatrix = async (req, res) => {
   try {
-    const partners = await Partner.find()
+    const filter = {};
+    if (req.allowedPartnerIds) {
+      filter._id = { $in: req.allowedPartnerIds };
+    }
+
+    const partners = await Partner.find(filter)
       .populate('parentId', 'partnerId name level roleTitle')
       .populate('uplines', 'partnerId name level roleTitle')
       .sort({ level: 1, createdAt: 1 });

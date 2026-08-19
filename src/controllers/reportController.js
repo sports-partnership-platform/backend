@@ -4,12 +4,17 @@ const Sport = require('../models/Sport');
 
 exports.getDashboardStats = async (req, res) => {
   try {
-    const totalPartners = await Partner.countDocuments();
-    const activePartners = await Partner.countDocuments({ status: 'Active' });
+    const partnerFilter = {};
+    if (req.allowedPartnerIds) {
+      partnerFilter._id = { $in: req.allowedPartnerIds };
+    }
 
-    // Level breakdown (L0: Owner down to L5)
+    const totalPartners = await Partner.countDocuments(partnerFilter);
+    const activePartners = await Partner.countDocuments({ ...partnerFilter, status: 'Active' });
+
+    // Level breakdown
     const levelsCount = { L0: 0, L1: 0, L2: 0, L3: 0, L4: 0, L5: 0 };
-    const partners = await Partner.find().select('level status');
+    const partners = await Partner.find(partnerFilter).select('level status');
     partners.forEach(p => {
       const key = `L${p.level}`;
       if (levelsCount[key] !== undefined) {
@@ -17,8 +22,16 @@ exports.getDashboardStats = async (req, res) => {
       }
     });
 
-    // Total transactions revenue
-    const transactions = await Transaction.find();
+    // Transaction scoping
+    const txFilter = {};
+    if (req.allowedPartnerIds) {
+      txFilter.$or = [
+        { partnerId: { $in: req.allowedPartnerIds } },
+        { 'breakdown.partnerId': req.user.partnerRef._id }
+      ];
+    }
+
+    const transactions = await Transaction.find(txFilter);
     let totalRevenue = 0;
     const sportsRevenue = {};
 
@@ -31,7 +44,7 @@ exports.getDashboardStats = async (req, res) => {
       sportsRevenue[t.sport].count += 1;
     });
 
-    const recentTransactions = await Transaction.find()
+    const recentTransactions = await Transaction.find(txFilter)
       .sort({ createdAt: -1 })
       .limit(5);
 
@@ -56,12 +69,27 @@ exports.getDashboardStats = async (req, res) => {
 
 exports.getEarningsReport = async (req, res) => {
   try {
-    const transactions = await Transaction.find();
+    const txFilter = {};
+    if (req.allowedPartnerIds) {
+      txFilter.$or = [
+        { partnerId: { $in: req.allowedPartnerIds } },
+        { 'breakdown.partnerId': req.user.partnerRef._id }
+      ];
+    }
+
+    const transactions = await Transaction.find(txFilter);
     const partnerEarningsMap = {};
 
     transactions.forEach(t => {
       t.breakdown.forEach(item => {
         const idStr = item.partnerId.toString();
+
+        // If scoped, only collect earnings for partners within the user's view
+        if (req.allowedPartnerIds) {
+          const allowedStrIds = req.allowedPartnerIds.map(id => id.toString());
+          if (!allowedStrIds.includes(idStr)) return;
+        }
+
         if (!partnerEarningsMap[idStr]) {
           partnerEarningsMap[idStr] = {
             partnerId: idStr,
