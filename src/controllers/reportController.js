@@ -7,8 +7,8 @@ exports.getDashboardStats = async (req, res) => {
     const totalPartners = await Partner.countDocuments();
     const activePartners = await Partner.countDocuments({ status: 'Active' });
 
-    // Level breakdown
-    const levelsCount = { L1: 0, L2: 0, L3: 0, L4: 0, L5: 0 };
+    // Level breakdown (L0: Owner down to L5)
+    const levelsCount = { L0: 0, L1: 0, L2: 0, L3: 0, L4: 0, L5: 0 };
     const partners = await Partner.find().select('level status');
     partners.forEach(p => {
       const key = `L${p.level}`;

@@ -11,7 +11,8 @@ const partnerSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String },
   phone: { type: String },
-  level: { type: Number, required: true, min: 1, max: 5 },
+  level: { type: Number, required: true, min: 0, max: 5 }, // 0: Owner, 1: Level 1, 2: Level 2...
+  roleTitle: { type: String, default: 'Partner' }, // 'Owner', 'Senior Partner', 'Sub-Partner', 'Master Agent', 'Agent', 'Sub-Agent'
   parentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Partner', default: null },
   uplines: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Partner' }],
   status: { type: String, enum: ['Active', 'Inactive', 'Pending'], default: 'Active' },

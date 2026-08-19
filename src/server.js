@@ -26,6 +26,16 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Sports Partnership API running smoothly' });
 });
 
+// Admin reseed endpoint
+app.post('/api/seed/reset', async (req, res) => {
+  try {
+    await seedData(true);
+    res.json({ success: true, message: 'Database successfully reseeded with Owner -> L1 -> L5 hierarchy' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // Serve Angular static production build
 const frontendBrowserPath = path.join(__dirname, '../../frontend/dist/sports-partnership-frontend/browser');
 const frontendRootPath = path.join(__dirname, '../../frontend/dist/sports-partnership-frontend');
@@ -50,7 +60,7 @@ app.get('*', (req, res) => {
 const PORT = process.env.PORT || 5000;
 
 connectDB().then(async () => {
-  await seedData();
+  await seedData(true);
   app.listen(PORT, () => {
     console.log(`🚀 Sports Partnership Platform running at: http://localhost:${PORT}`);
   });

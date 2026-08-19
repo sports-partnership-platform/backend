@@ -45,8 +45,8 @@ exports.updatePartnership = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Partner not found' });
     }
 
-    const currentSportConfig = partner.sportsPartnership.get(sportCode) || { received: partner.level === 1 ? 100 : 0, given: 0, remaining: 0 };
-    const received = currentSportConfig.received;
+    const currentSportConfig = partner.sportsPartnership.get(sportCode) || { received: partner.level === 0 ? 100 : 0, given: 0, remaining: 0 };
+    const received = partner.level === 0 ? 100 : currentSportConfig.received;
 
     if (given > received) {
       return res.status(400).json({
@@ -70,7 +70,7 @@ exports.updatePartnership = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Partnership updated and cascaded successfully',
+      message: 'Partnership updated and cascaded successfully across all downlines',
       data: partner
     });
   } catch (error) {
@@ -78,13 +78,13 @@ exports.updatePartnership = async (req, res) => {
   }
 };
 
-// Get sports partnership matrix for a partner or all partners
+// Get sports partnership matrix for all partners (Owner down to Level 5)
 exports.getPartnershipMatrix = async (req, res) => {
   try {
     const partners = await Partner.find()
-      .populate('parentId', 'partnerId name level')
-      .populate('uplines', 'partnerId name level')
-      .sort({ level: 1 });
+      .populate('parentId', 'partnerId name level roleTitle')
+      .populate('uplines', 'partnerId name level roleTitle')
+      .sort({ level: 1, createdAt: 1 });
 
     const sports = await Sport.find({ active: true });
 
@@ -94,9 +94,9 @@ exports.getPartnershipMatrix = async (req, res) => {
       sports.forEach(sport => {
         const config = partner.sportsPartnership ? partner.sportsPartnership.get(sport.code) : null;
         sportsWise[sport.code] = config || {
-          received: partner.level === 1 ? 100 : 0,
+          received: partner.level === 0 ? 100 : 0,
           given: 0,
-          remaining: partner.level === 1 ? 100 : 0
+          remaining: partner.level === 0 ? 100 : 0
         };
       });
 
@@ -105,6 +105,7 @@ exports.getPartnershipMatrix = async (req, res) => {
         partnerId: partner.partnerId,
         name: partner.name,
         level: partner.level,
+        roleTitle: partner.roleTitle || (partner.level === 0 ? 'Platform Owner' : `Level ${partner.level}`),
         parent: partner.parentId,
         uplines: partner.uplines,
         sportsWise
